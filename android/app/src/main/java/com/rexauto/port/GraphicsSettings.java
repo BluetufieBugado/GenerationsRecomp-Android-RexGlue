@@ -116,6 +116,12 @@ public final class GraphicsSettings {
             m.put("gpu_debug_markers", "false");
             // dynamic rendering: no VkRenderPass objects, fewer pipeline variants
             m.put("vulkan_dynamic_rendering", "true");
+            // Mali / low-end compat: don't reject GPUs without vertex/fragment
+            // stores+atomics (e.g. Mali-G57). No-op on GPUs that have them
+            // (the features stay enabled); on GPUs without them it turns the
+            // boot abort into a warning. Needs the mali-vertex-stores SDK patch.
+            m.put("vulkan_require_vertex_pipeline_stores_and_atomics", "false");
+            m.put("vulkan_require_fragment_stores_and_atomics", "false");
         }
         if (p.equals("performance")) {
             m.put("anisotropic_override", "0");          // 0 = off
