@@ -1,0 +1,33 @@
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index 0b45c0d..681067d 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -12,6 +12,7 @@
+ #include <algorithm>
+ #include <array>
+ #include <atomic>
++#include <chrono>
+ #include <cstdint>
+ #include <cstring>
+ #include <iterator>
+@@ -2273,6 +2274,20 @@ void VulkanCommandProcessor::OnGammaRampPWLValueWritten() {
+ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontbuffer_width,
+                                        uint32_t frontbuffer_height) {
+   SCOPE_profile_cpu_f("gpu");
++  // Android fork: per-second frame-rate log for on-device performance tuning
++  // (visible in the game log as a [gpu] warning so it shows at log_level=warning).
++  static auto fps_last_time = std::chrono::steady_clock::now();
++  static uint32_t fps_frames = 0;
++  ++fps_frames;
++  const auto fps_now = std::chrono::steady_clock::now();
++  const auto fps_elapsed_ms =
++      std::chrono::duration_cast<std::chrono::milliseconds>(fps_now - fps_last_time).count();
++  if (fps_elapsed_ms >= 5000) {
++    const double fps = fps_frames * 1000.0 / double(fps_elapsed_ms > 0 ? fps_elapsed_ms : 1);
++    REXGPU_WARN("present fps: {:.1f} ({} frames in {} ms)", fps, fps_frames, fps_elapsed_ms);
++    fps_frames = 0;
++    fps_last_time = fps_now;
++  }
+   vertex_buffers_in_sync_[0] = 0;
+   vertex_buffers_in_sync_[1] = 0;
+ 
