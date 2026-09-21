@@ -1,7 +1,8 @@
 diff --git a/src/ui/vulkan/vulkan_device.cpp b/src/ui/vulkan/vulkan_device.cpp
+index 8197bb4..ee985c3 100644
 --- a/src/ui/vulkan/vulkan_device.cpp
 +++ b/src/ui/vulkan/vulkan_device.cpp
-@@ -105,18 +105,20 @@
+@@ -109,19 +109,21 @@ std::unique_ptr<VulkanDevice> VulkanDevice::CreateIfSupported(
            properties.deviceName);
        return nullptr;
      }
@@ -24,11 +25,8 @@ diff --git a/src/ui/vulkan/vulkan_device.cpp b/src/ui/vulkan/vulkan_device.cpp
 -      return nullptr;
      }
      if (REXCVAR_GET(vulkan_require_geometry_shader) && !supported_features.geometryShader) {
-@@ -122,15 +123,16 @@
-     if (REXCVAR_GET(vulkan_require_geometry_shader) && !supported_features.geometryShader) {
        REXLOG_WARN(
-           "Vulkan device '{}' doesn't support geometryShader, but "
-           "vulkan_require_geometry_shader=true",
+@@ -130,12 +132,13 @@ std::unique_ptr<VulkanDevice> VulkanDevice::CreateIfSupported(
            properties.deviceName);
        return nullptr;
      }
@@ -45,3 +43,4 @@ diff --git a/src/ui/vulkan/vulkan_device.cpp b/src/ui/vulkan/vulkan_device.cpp
 -      return nullptr;
      }
    }
+ 
