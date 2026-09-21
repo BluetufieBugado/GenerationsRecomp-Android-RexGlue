@@ -24,3 +24,30 @@ diff --git a/src/ui/vulkan/vulkan_device.cpp b/src/ui/vulkan/vulkan_device.cpp
 -      return nullptr;
      }
      if (REXCVAR_GET(vulkan_require_geometry_shader) && !supported_features.geometryShader) {
+      REXLOG_WARN(
+          "Vulkan device '{}' doesn't support geometryShader, but "
+          "vulkan_require_geometry_shader=true",
+          properties.deviceName);
+      return nullptr;
+    }
+@@ -122,15 +123,15 @@
+     if (REXCVAR_GET(vulkan_require_geometry_shader) && !supported_features.geometryShader) {
+       REXLOG_WARN(
+           "Vulkan device '{}' doesn't support geometryShader, but "
+           "vulkan_require_geometry_shader=true",
+           properties.deviceName);
+       return nullptr;
+     }
+-    if (REXCVAR_GET(vulkan_require_fill_mode_non_solid) && !supported_features.fillModeNonSolid) {
++    // Mali compat (same as above): fall back to solid fill for line/point
++    // polygon modes instead of rejecting the device.
++    if (!supported_features.fillModeNonSolid) {
+       REXLOG_WARN(
+-          "Vulkan device '{}' doesn't support fillModeNonSolid, but "
+-          "vulkan_require_fill_mode_non_solid=true",
++          "Vulkan device '{}' doesn't support fillModeNonSolid "
++          "(using solid fill fallback for line/point modes)",
+           properties.deviceName);
+-      return nullptr;
+     }
+   }

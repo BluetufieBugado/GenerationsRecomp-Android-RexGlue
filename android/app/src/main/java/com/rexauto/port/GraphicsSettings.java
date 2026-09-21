@@ -122,6 +122,7 @@ public final class GraphicsSettings {
             // boot abort into a warning. Needs the mali-vertex-stores SDK patch.
             m.put("vulkan_require_vertex_pipeline_stores_and_atomics", "false");
             m.put("vulkan_require_fragment_stores_and_atomics", "false");
+            m.put("vulkan_require_fill_mode_non_solid", "false");
         }
         if (p.equals("performance")) {
             m.put("anisotropic_override", "0");          // 0 = off
