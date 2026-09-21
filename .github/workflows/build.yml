@@ -46,9 +46,11 @@ jobs:
           ./gradlew $TASK -PrexName=sonicgenerations \
             -PrexPortDir=$GITHUB_WORKSPACE/port \
             -PrexSdkDir=$GITHUB_WORKSPACE/android/sdk/rexglue-sdk
+          echo "--- APK outputs ---"
+          find app/build/outputs/apk -type f | sort
         working-directory: android
 
       - uses: actions/upload-artifact@v4
         with:
           name: sonicgenerations-apk-${{ env.BT }}
-          path: android/app/build/outputs/apk/${{ env.DIR }}/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
