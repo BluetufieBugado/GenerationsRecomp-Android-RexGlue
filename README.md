@@ -5,6 +5,18 @@ My work on this "fork" involved adding compatibility for Mali GPUs (documented !
 Currently, performance hovers around 2 to 4 fps in my tests, though I believe this may vary depending on the device.
 <img width="2340" height="1080" alt="screenshot" src="https://github.com/user-attachments/assets/c7cfd37c-9350-43da-92ab-effe53651ceb" />
 
+# A straightforward summary of what needs to be done to improve (currently)
+
+1- Render below native resolution (e.g., half-res). Currently, the minimum is 1x (full 360 resolution). The Mali GPU (specifically) struggles with fragment processing; rendering at a lower resolution and then upscaling would cut the GPU workload in half or more (improving performance for everyone). This offers the biggest potential gain but requires engine-level changes.
+
+2 - Change texture formats (DXT → ETC2). The game currently uses a texture format the Mali GPU doesn't support, so the port converts everything to a format that is four times larger. ETC2 is natively supported by Mali; textures would return to their original size, and the upload/resolution load would be reduced fourfold. (This would boost performance for everyone, not just Mali users; I imagine Snapdragon devices lacking good custom driver support could also benefit.)
+
+3 - Fix the vertex memexport fallback. In my tests, Sonic sometimes appeared with a glitched hand; this is a direct symptom—since the feature had to be skipped at boot, that specific code path is broken. Reimplementing it using compute shaders would resolve this issue (it wouldn't increase FPS, but it would fix a graphical glitch).
+
+4 - Speed ​​up CPU emulation. The ~370ms/frame spent on guest code is a major issue. This requires deep-level work—such as a better recompiler or profile-guided optimization—which falls into SDK territory.
+
+5 - Change a default setting (affinity). The current default causes glitches on big.LITTLE architectures; flipping it won't boost FPS, but it will eliminate bugs.
+
 # Original Readme.md - from Player1444
 sonicgenerations -- Android project sources
 android/   launcher app (Gradle project)
