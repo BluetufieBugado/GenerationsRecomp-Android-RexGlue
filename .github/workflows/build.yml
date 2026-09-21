@@ -1,5 +1,14 @@
 name: build-apk
-on: { workflow_dispatch: {}, push: { branches: [main] } }
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug = debuggable + simpleperf, faster)'
+        required: true
+        default: 'release'
+        type: choice
+        options: [release, debug]
+  push: { branches: [main] }
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -25,14 +34,21 @@ jobs:
             -storepass rexauto -keypass rexauto -dname "CN=rexauto"
           chmod +x android/gradlew
 
-      - name: Build Release
+      - name: Build
         run: |
-          ./gradlew assembleRelease -PrexName=sonicgenerations \
+          BT="${{ inputs.build_type }}"
+          [ -z "$BT" ] && BT="release"
+          case "$BT" in
+            debug) TASK=assembleDebug; DIR=debug;;
+            *) TASK=assembleRelease; DIR=release;;
+          esac
+          echo "BT=$BT TASK=$TASK DIR=$DIR" >> $GITHUB_ENV
+          ./gradlew $TASK -PrexName=sonicgenerations \
             -PrexPortDir=$GITHUB_WORKSPACE/port \
             -PrexSdkDir=$GITHUB_WORKSPACE/android/sdk/rexglue-sdk
         working-directory: android
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sonicgenerations-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          name: sonicgenerations-apk-${{ env.BT }}
+          path: android/app/build/outputs/apk/${{ env.DIR }}/*.apk
