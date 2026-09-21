@@ -17,6 +17,11 @@ Currently, performance hovers around 2 to 4 fps in my tests, though I believe th
 
 5 - Change a default setting (affinity). The current default causes glitches on big.LITTLE architectures; flipping it won't boost FPS, but it will eliminate bugs.
 
+# Disclaimer and RexGlue
+
+This project was written using RexGlue, which means it is less efficient than a project built with XenonRecomp and xenos recomp tools.
+This marks the limit of my contribution; I don't think I'll be able to do much more than this with the RexGlue version.
+
 # Original Readme.md - from Player1444
 sonicgenerations -- Android project sources
 android/   launcher app (Gradle project)
