@@ -1,43 +1,26 @@
 diff --git a/src/ui/vulkan/vulkan_device.cpp b/src/ui/vulkan/vulkan_device.cpp
 --- a/src/ui/vulkan/vulkan_device.cpp
 +++ b/src/ui/vulkan/vulkan_device.cpp
-@@ -28,12 +28,12 @@
- #include <rex/ui/vulkan/device.h>
-
- REXCVAR_DEFINE_BOOL(vulkan_require_fragment_stores_and_atomics, true, "UI/Vulkan",
--                    "Deprecated and ignored for parity; fragmentStoresAndAtomics is always "
--                    "required for Vulkan GPU emulation")
-+                    "Require fragmentStoresAndAtomics for Vulkan GPU emulation (disable to "
-+                    "boot on GPUs without it, e.g. Mali)")
-     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
- REXCVAR_DEFINE_BOOL(vulkan_require_vertex_pipeline_stores_and_atomics, true, "UI/Vulkan",
--                    "Deprecated and ignored for parity; vertexPipelineStoresAndAtomics is always "
--                    "required for Vulkan GPU emulation")
-+                    "Require vertexPipelineStoresAndAtomics for Vulkan GPU emulation (disable "
-+                    "to boot on GPUs without it, e.g. Mali-G57)")
-     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
- // Apple Silicon / MoltenVK does not expose geometryShader or fillModeNonSolid;
- // default both to false on macOS so the device can still be selected.
 @@ -105,18 +105,20 @@
            properties.deviceName);
        return nullptr;
      }
--    if (!supported_features.fragmentStoresAndAtomics) {
-+    if (REXCVAR_GET(vulkan_require_fragment_stores_and_atomics) &&
-+        !supported_features.fragmentStoresAndAtomics) {
++    // Android fork (Mali compat): some GPUs (e.g. Mali-G57) lack
++    // fragment/vertex stores+atomics. They only back memexport paths that are
++    // unused when readback is off, so warn and continue instead of rejecting
++    // the device. No-op on GPUs with the features (they stay enabled below).
+     if (!supported_features.fragmentStoresAndAtomics) {
        REXLOG_WARN(
            "Vulkan device '{}' doesn't support fragmentStoresAndAtomics, which "
            "is required for Vulkan GPU emulation parity",
            properties.deviceName);
-       return nullptr;
+-      return nullptr;
      }
--    if (!supported_features.vertexPipelineStoresAndAtomics) {
-+    if (REXCVAR_GET(vulkan_require_vertex_pipeline_stores_and_atomics) &&
-+        !supported_features.vertexPipelineStoresAndAtomics) {
+     if (!supported_features.vertexPipelineStoresAndAtomics) {
        REXLOG_WARN(
            "Vulkan device '{}' doesn't support vertexPipelineStoresAndAtomics, which "
            "is required for Vulkan GPU emulation parity",
            properties.deviceName);
-       return nullptr;
+-      return nullptr;
      }
      if (REXCVAR_GET(vulkan_require_geometry_shader) && !supported_features.geometryShader) {
