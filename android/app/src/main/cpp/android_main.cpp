@@ -361,7 +361,9 @@ int RunAndroidApp() {
   // thread scheduler must not try to pin threads to the 360's 6 hardware
   // threads (we have big.LITTLE and want the kernel to migrate freely), and
   // the vsync worker should sleep, not spin.
-  args.emplace_back("--ignore_thread_affinities=true");
+  // Default is false: true causes graphical glitches (missing logo, corrupt
+  // textures) on big.LITTLE, see docs/mali-g57.md section 3.
+  args.emplace_back("--ignore_thread_affinities=false");
   args.emplace_back("--ignore_thread_priorities=true");
   args.emplace_back("--log_flush_interval=5");  // batch log writes
   for (auto& a : ReadSettingsArgs(external_dir + "/" + kSettingsFileName)) {
