@@ -73,6 +73,14 @@ public final class GraphicsSettings {
     public int fpsCap() { return prefs.getInt("fps_cap", 0); }
     public void setFpsCap(int v) { prefs.edit().putInt("fps_cap", v).apply(); }
 
+    /** On-screen FPS overlay (ImGui debug overlay, needs fps-overlay SDK patch). */
+    public boolean showFps() { return prefs.getBoolean("show_fps", false); }
+    public void setShowFps(boolean v) { prefs.edit().putBoolean("show_fps", v).apply(); }
+
+    /** Diagnostic half-res: halve render targets to measure fragment-bound time (needs half-res SDK patch). */
+    public boolean halfRes() { return prefs.getBoolean("half_res", false); }
+    public void setHalfRes(boolean v) { prefs.edit().putBoolean("half_res", v).apply(); }
+
     /** Extra raw cvars (advanced): "key=value" per line. */
     public String extra() { return prefs.getString("extra", ""); }
     public void setExtra(String v) { prefs.edit().putString("extra", v == null ? "" : v).apply(); }
@@ -133,6 +141,9 @@ public final class GraphicsSettings {
             m.put("anisotropic_override", "3");          // 4x
         }
         if (fpsCap() > 0) m.put("env.REX_FPS_CAP", Integer.toString(fpsCap()));
+        // On-screen FPS overlay + diagnostic half-res (both default off).
+        if (showFps()) m.put("debug_overlay", "true");
+        if (halfRes()) m.put("gpu_half_res", "true");
         // "env.NAME=value" lines are exported as environment variables by the
         // native side (the dispatcher reads REX_HEAL_DISCOVER via getenv).
         if (tolerant()) m.put("env.REX_HEAL_DISCOVER", "1");

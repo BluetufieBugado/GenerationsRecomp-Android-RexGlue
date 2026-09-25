@@ -1,0 +1,64 @@
+diff --git a/src/ui/rex_app.cpp b/src/ui/rex_app.cpp
+index b94fe9e..4ec4073 100644
+--- a/src/ui/rex_app.cpp
++++ b/src/ui/rex_app.cpp
+@@ -43,9 +43,15 @@
+ #include <imgui.h>
+ 
+ #include <algorithm>
++#include <chrono>
+ #include <filesystem>
+ #include <string_view>
+ 
++REXCVAR_DEFINE_BOOL(debug_overlay, false, "Debug",
++                     "Show the ImGui debug overlay (FPS) at startup. Useful on "
++                     "Android where there is no F3 key to toggle it.")
++    .lifecycle(rex::cvar::Lifecycle::kHotReload);
++
+ REXCVAR_DEFINE_STRING(gpu_plugin, "", "GPU",
+                       "GPU emulation plugin to load at startup (e.g. 'xenos'); empty disables "
+                       "GPU emulation")
+@@ -402,6 +408,43 @@ void ReXApp::SetupOverlays(rex::ui::Presenter* presenter, rex::ui::ImmediateDraw
+           std::make_unique<ui::DebugOverlayDialog>(imgui_drawer_.get(), frame_stats_provider_);
+     }
+   });
++  // Android fork: wire guest present rate as the overlay stats provider when a
++  // presenter is present, and auto-show the overlay when debug_overlay=true
++  // (phones have no F3 key). The provider derives FPS from the presenter's
++  // guest_frame_count (incremented per RefreshGuestOutput), updating the
++  // displayed value at most twice per second to stay readable.
++  if (presenter) {
++    frame_stats_provider_ = [presenter] {
++      using clock = std::chrono::steady_clock;
++      static auto last_time = clock::now();
++      static uint64_t last_count = 0;
++      static double shown_fps = 0.0;
++      static double shown_ms = 0.0;
++      const uint64_t count = presenter->guest_frame_count();
++      const auto now = clock::now();
++      const double elapsed = std::chrono::duration<double>(now - last_time).count();
++      if (elapsed >= 0.5) {
++        if (count > last_count && elapsed > 0.0) {
++          shown_fps = double(count - last_count) / elapsed;
++          shown_ms = shown_fps > 0.0 ? 1000.0 / shown_fps : 0.0;
++        } else {
++          shown_fps = 0.0;
++          shown_ms = 0.0;
++        }
++        last_count = count;
++        last_time = now;
++      }
++      ui::FrameStats stats;
++      stats.fps = shown_fps;
++      stats.frame_time_ms = shown_ms;
++      stats.frame_count = count;
++      return stats;
++    };
++    if (REXCVAR_GET(debug_overlay) && !debug_overlay_) {
++      debug_overlay_ =
++          std::make_unique<ui::DebugOverlayDialog>(imgui_drawer_.get(), frame_stats_provider_);
++    }
++  }
+   rex::ui::RegisterBind("bind_console", "Backtick", "Toggle console overlay", [this] {
+     if (console_overlay_) {
+       console_overlay_.reset();

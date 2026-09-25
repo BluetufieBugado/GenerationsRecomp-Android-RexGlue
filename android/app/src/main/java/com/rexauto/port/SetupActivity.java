@@ -600,10 +600,10 @@ public class SetupActivity extends Activity {
 
         label(box, R.string.gfx_video_mode);
         Spinner mode = new Spinner(this);
-        int[][] modes = {{1280, 720}, {1920, 1080}, {1024, 576}, {960, 540}};
+        int[][] modes = {{1280, 720}, {1920, 1080}, {1024, 576}, {960, 540}, {854, 480}, {640, 360}};
         mode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"1280x720 (default)", "1920x1080 (heavy)", "1024x576 (lighter)", "960x540 (lightest)"}));
-        for (int i = 0; i < modes.length; i++) if (modes[i][0] == gs.videoWidth()) mode.setSelection(i);
+                new String[]{"1280x720 (default)", "1920x1080 (heavy)", "1024x576 (lighter)", "960x540 (light)", "854x480 (weak phones)", "640x360 (weakest)"}));
+        for (int i = 0; i < modes.length; i++) if (modes[i][0] == gs.videoWidth() && modes[i][1] == gs.videoHeight()) mode.setSelection(i);
         box.addView(mode);
 
         label(box, R.string.gfx_orientation);
@@ -629,6 +629,16 @@ public class SetupActivity extends Activity {
         tolerant.setChecked(gs.tolerant());
         box.addView(tolerant);
 
+        CheckBox showFps = new CheckBox(this);
+        showFps.setText("Show FPS overlay (debug_overlay)");
+        showFps.setChecked(gs.showFps());
+        box.addView(showFps);
+
+        CheckBox halfRes = new CheckBox(this);
+        halfRes.setText("Half-res experiment (gpu_half_res, may crop image)");
+        halfRes.setChecked(gs.halfRes());
+        box.addView(halfRes);
+
         label(box, R.string.gfx_extra);
         EditText extra = new EditText(this);
         extra.setHint("key=value");
@@ -652,6 +662,8 @@ public class SetupActivity extends Activity {
                     gs.setVsync(vsync.isChecked());
                     gs.setLetterbox(letterbox.isChecked());
                     gs.setTolerant(tolerant.isChecked());
+                    gs.setShowFps(showFps.isChecked());
+                    gs.setHalfRes(halfRes.isChecked());
                     gs.setExtra(extra.getText().toString());
                     try { gs.write(this); } catch (Exception e) { Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show(); }
                 })
