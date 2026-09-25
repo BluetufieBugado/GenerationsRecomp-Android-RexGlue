@@ -1,25 +1,30 @@
 diff --git a/src/graphics/pipeline/texture/cache.cpp b/src/graphics/pipeline/texture/cache.cpp
-index 76f5600..4bd6fc3 100644
+index 8a8c6b5..75838da 100644
 --- a/src/graphics/pipeline/texture/cache.cpp
 +++ b/src/graphics/pipeline/texture/cache.cpp
-@@ -77,6 +77,12 @@ REXCVAR_DEFINE_INT32(resolution_scale, 1, "GPU",
+@@ -77,6 +77,17 @@ REXCVAR_DEFINE_INT32(resolution_scale, 1, "GPU",
      .range(1, 8)
      .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
  
++// Diagnostic half-res (Android fork v1.1): render targets stay full size
++// (halving the allocation tripped an assert in librexgpu-xenos on Mali and
++// aborted boot). Only viewport+scissor are halved, so the GPU rasterizes
++// ~1/4 of the pixels of the full target. Image will show quarter-screen in
++// a corner; for fragment-bound FPS experiments only.
 +REXCVAR_DEFINE_BOOL(gpu_half_res, false, "GPU",
-+                     "Diagnostic half-res: halve render target size, viewport and "
-+                     "scissor to measure fragment-bound frame time on tile GPUs "
-+                     "(Mali). Image may be cropped/offset; for FPS experiments only.")
++                     "Diagnostic half-res v1.1: halve viewport and scissor only "
++                     "(targets stay full size). Quarter-screen image, for FPS "
++                     "experiments on tile GPUs.")
 +    .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
 +
  REXCVAR_DEFINE_BOOL(pre_mask_resolve_l2_block, true, "GPU",
                      "Pre-mask scaled resolve L2 blocks to the write range before iterating");
  
 diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
-index 001f36b..fa6fea7 100644
+index df36414..bc1dcb9 100644
 --- a/src/graphics/vulkan/command_processor.cpp
 +++ b/src/graphics/vulkan/command_processor.cpp
-@@ -65,10 +65,12 @@ REXCVAR_DEFINE_BOOL(vulkan_submit_on_primary_buffer_end, true, "GPU/Vulkan",
+@@ -67,10 +67,12 @@ REXCVAR_DEFINE_BOOL(vulkan_submit_on_primary_buffer_end, true, "GPU/Vulkan",
      .lifecycle(rex::cvar::Lifecycle::kHotReload);
  
  REXCVAR_DEFINE_BOOL(vulkan_dynamic_rendering, true, "GPU/Vulkan",
@@ -34,11 +39,13 @@ index 001f36b..fa6fea7 100644
  namespace rex::graphics::vulkan {
  
  namespace {
-@@ -5687,6 +5689,13 @@ void VulkanCommandProcessor::UpdateDynamicState(const draw_util::ViewportInfo& v
+@@ -5734,6 +5736,15 @@ void VulkanCommandProcessor::UpdateDynamicState(const draw_util::ViewportInfo& v
    }
    viewport.minDepth = viewport_info.z_min;
    viewport.maxDepth = viewport_info.z_max;
-+  // Android fork (half-res experiment): match the halved render target.
++  // Android fork (half-res v1.1): halve viewport+scissor only, targets stay
++  // full size (halving the allocation aborted boot on Mali). Quarter-screen
++  // image in a corner, but fragment work drops ~4x for the experiment.
 +  if (REXCVAR_GET(gpu_half_res)) {
 +    viewport.x *= 0.5f;
 +    viewport.y *= 0.5f;
@@ -48,7 +55,7 @@ index 001f36b..fa6fea7 100644
    SetViewport(viewport);
  
    // Scissor.
-@@ -5696,6 +5705,12 @@ void VulkanCommandProcessor::UpdateDynamicState(const draw_util::ViewportInfo& v
+@@ -5743,6 +5754,12 @@ void VulkanCommandProcessor::UpdateDynamicState(const draw_util::ViewportInfo& v
    scissor.offset[1] *= draw_resolution_scale_y;
    scissor.extent[0] *= draw_resolution_scale_x;
    scissor.extent[1] *= draw_resolution_scale_y;
@@ -61,34 +68,3 @@ index 001f36b..fa6fea7 100644
    VkRect2D scissor_rect;
    scissor_rect.offset.x = int32_t(scissor.offset[0]);
    scissor_rect.offset.y = int32_t(scissor.offset[1]);
-diff --git a/src/graphics/vulkan/render_target_cache.cpp b/src/graphics/vulkan/render_target_cache.cpp
-index 0298f06..2606bba 100644
---- a/src/graphics/vulkan/render_target_cache.cpp
-+++ b/src/graphics/vulkan/render_target_cache.cpp
-@@ -41,6 +41,8 @@ REXCVAR_DEFINE_STRING(render_target_path_vulkan, "", "GPU/Vulkan",
-                       "Vulkan render target implementation path")
-     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
- 
-+REXCVAR_DECLARE(bool, gpu_half_res);
-+
- // DEFINE_string(
- //     render_target_path_vulkan, "",
- //     "Render target emulation path to use on Vulkan.\n"
-@@ -1868,9 +1870,14 @@ RenderTargetCache::RenderTarget* VulkanRenderTargetCache::CreateRenderTarget(Ren
-   image_create_info.pNext = nullptr;
-   image_create_info.flags = 0;
-   image_create_info.imageType = VK_IMAGE_TYPE_2D;
--  image_create_info.extent.width = key.GetWidth() * draw_resolution_scale_x();
--  image_create_info.extent.height =
--      GetRenderTargetHeight(key.pitch_tiles_at_32bpp, key.msaa_samples) * draw_resolution_scale_y();
-+  // Android fork (half-res experiment): halve the render target when
-+  // gpu_half_res=true to measure fragment-bound time on tile GPUs.
-+  const uint32_t half_div = REXCVAR_GET(gpu_half_res) ? 2 : 1;
-+  image_create_info.extent.width =
-+      std::max(1u, key.GetWidth() * draw_resolution_scale_x() / half_div);
-+  image_create_info.extent.height = std::max(
-+      1u, GetRenderTargetHeight(key.pitch_tiles_at_32bpp, key.msaa_samples) *
-+              draw_resolution_scale_y() / half_div);
-   image_create_info.extent.depth = 1;
-   image_create_info.mipLevels = 1;
-   image_create_info.arrayLayers = 1;
