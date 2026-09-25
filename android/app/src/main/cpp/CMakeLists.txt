@@ -47,7 +47,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
   if(NOT DEFINED ENV{REX_ANDROID_BASELINE_ARM})
     add_compile_options(-march=armv8.2-a+fp16+dotprod -mtune=cortex-a76)
   endif()
-  add_link_options(-Wl,-O2 -Wl,--gc-sections -Wl,--icf=all -Wl,--as-needed -Wl,-z,now)
+  add_link_options(-Wl,-O2 -Wl,--gc-sections -Wl,--icf=all -Wl,--as-needed -Wl,-z,now
+                   # Lower peak RAM of the thin-LTO link on CI runners
+                   -Wl,--no-keep-memory)
 endif()
 
 add_subdirectory("${REXSDK_DIR}" rexglue-sdk)

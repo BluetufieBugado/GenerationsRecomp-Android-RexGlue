@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -35,6 +36,12 @@ jobs:
           chmod +x android/gradlew
 
       - name: Build
+        env:
+          # Huge native build (318 MB generated + thin-LTO link): cap ninja
+          # parallelism so parallel -O3 TUs + lld don't OOM the 16 GB runner
+          # (runner lost communication after ~58 min = classic OOM-kill).
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+          GRADLE_OPTS: "-Xmx3g -Dorg.gradle.workers.max=2"
         run: |
           BT="${{ inputs.build_type }}"
           [ -z "$BT" ] && BT="release"
